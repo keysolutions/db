@@ -157,14 +157,23 @@ func fetchResult(iter *iterator, itemT reflect.Type, columns []string) (reflect.
 
 		values := make([]interface{}, len(columns))
 		typeMap := mapper.TypeMap(itemT)
-		fieldMap := typeMap.Names
+
+		fieldMap := make(map[string][]*reflectx.FieldInfo)
+		for _, i := range typeMap.Index {
+			if i.Name == "" {
+				continue
+			}
+			fieldMap[i.Name] = append(fieldMap[i.Name], i)
+		}
 
 		for i, k := range columns {
-			fi, ok := fieldMap[k]
-			if !ok {
+			fs, ok := fieldMap[k]
+			if !ok || len(fs) == 0 {
 				values[i] = new(interface{})
 				continue
 			}
+			fi := fs[0]
+			fieldMap[k] = fs[1:]
 
 			// Check for deprecated jsonb tag.
 			if _, hasJSONBTag := fi.Options["jsonb"]; hasJSONBTag {
