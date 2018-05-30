@@ -23,6 +23,8 @@ package sqlbuilder
 
 import (
 	"database/sql"
+	"fmt"
+	"reflect"
 
 	"upper.io/db.v3"
 )
@@ -35,4 +37,39 @@ func (u scanner) Scan(v interface{}) error {
 	return u.v.UnmarshalDB(v)
 }
 
+type nullableScanner struct {
+	scanner func(v interface{}) error
+}
+
+func newNullableScanner(v interface{}) (nullableScanner, error) {
+	if s, ok := v.(sql.Scanner); ok {
+		return nullableScanner{
+			scanner: s.Scan,
+		}, nil
+	}
+
+	v1 := reflect.Indirect(reflect.ValueOf(v))
+	if !v1.CanSet() {
+		return nullableScanner{}, fmt.Errorf("%v must be assignable", v1)
+	}
+	return nullableScanner{
+		scanner: func(v interface{}) error {
+			v2 := reflect.Indirect(reflect.ValueOf(v))
+			if v1.Type() != v2.Type() {
+				return fmt.Errorf("unable to convert from %v to %v", v1, v2)
+			}
+			v1.Set(v2)
+			return nil
+		},
+	}, nil
+}
+
+func (n nullableScanner) Scan(v interface{}) error {
+	if v == nil {
+		return nil
+	}
+	return n.scanner(v)
+}
+
 var _ sql.Scanner = scanner{}
+var _ sql.Scanner = nullableScanner{}

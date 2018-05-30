@@ -186,6 +186,13 @@ func fetchResult(iter *iterator, itemT reflect.Type, columns []string) (reflect.
 			if u, ok := values[i].(db.Unmarshaler); ok {
 				values[i] = scanner{u}
 			}
+
+			if _, ok := fi.Options["nullable"]; ok {
+				values[i], err = newNullableScanner(values[i])
+				if err != nil {
+					return item, err
+				}
+			}
 		}
 
 		if converter, ok := iter.sess.(hasConvertValues); ok {
