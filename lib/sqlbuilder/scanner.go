@@ -50,13 +50,13 @@ func newNullableScanner(v interface{}) (nullableScanner, error) {
 
 	v1 := reflect.Indirect(reflect.ValueOf(v))
 	if !v1.CanSet() {
-		return nullableScanner{}, fmt.Errorf("%v must be assignable", v1)
+		return nullableScanner{}, fmt.Errorf("%v must be assignable", v1.Type())
 	}
 	return nullableScanner{
 		scanner: func(v interface{}) error {
 			v2 := reflect.Indirect(reflect.ValueOf(v))
 			if v1.Type() != v2.Type() {
-				return fmt.Errorf("unable to convert from %v to %v", v1, v2)
+				return fmt.Errorf("unable to convert from %v to %v", v1.Type(), v2.Type())
 			}
 			v1.Set(v2)
 			return nil
